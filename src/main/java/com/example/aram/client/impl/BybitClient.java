@@ -1,13 +1,13 @@
 package com.example.aram.client.impl;
 
 import com.example.aram.client.BaseExchangeClient;
+import com.example.aram.client.feign.BybitFeignClient;
 import com.example.aram.dto.PriceDto;
 import com.example.aram.enums.ExchangeType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,10 +23,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BybitClient extends BaseExchangeClient {
     
-    private static final String BASE_URL = "https://api.bybit.com";
+    private final BybitFeignClient bybitFeignClient;
     
-    public BybitClient(WebClient.Builder webClientBuilder) {
-        super(webClientBuilder, BASE_URL, ExchangeType.BYBIT);
+    public BybitClient(BybitFeignClient bybitFeignClient) {
+        super(null, null, ExchangeType.BYBIT);
+        this.bybitFeignClient = bybitFeignClient;
     }
     
     @Override
@@ -34,12 +35,7 @@ public class BybitClient extends BaseExchangeClient {
         try {
             String bybitSymbol = convertToExchangeSymbol(symbol);
             
-            BybitTickerResponse response = webClient
-                    .get()
-                    .uri("/v5/market/tickers?category=spot&symbol={symbol}", bybitSymbol)
-                    .retrieve()
-                    .bodyToMono(BybitTickerResponse.class)
-                    .block();
+            BybitTickerResponse response = bybitFeignClient.getTicker("spot", bybitSymbol);
             
             if (response != null && response.getResult() != null && 
                 response.getResult().getList() != null && !response.getResult().getList().isEmpty()) {
@@ -76,12 +72,7 @@ public class BybitClient extends BaseExchangeClient {
     @Override
     public List<PriceDto> fetchAllTickers() {
         try {
-            BybitTickerResponse response = webClient
-                    .get()
-                    .uri("/v5/market/tickers?category=spot")
-                    .retrieve()
-                    .bodyToMono(BybitTickerResponse.class)
-                    .block();
+            BybitTickerResponse response = bybitFeignClient.getAllTickers("spot");
             
             if (response != null && response.getResult() != null && response.getResult().getList() != null) {
                 return response.getResult().getList().stream()

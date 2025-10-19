@@ -3,12 +3,14 @@ package com.example.aram.model;
 import com.example.aram.enums.ArbitrageType;
 import com.example.aram.enums.ExchangeType;
 import com.example.aram.enums.OpportunityStatus;
-import jakarta.persistence.*;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
+import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

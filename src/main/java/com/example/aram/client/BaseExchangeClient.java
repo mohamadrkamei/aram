@@ -20,9 +20,13 @@ public abstract class BaseExchangeClient implements ExchangeClient {
     protected static final Duration TIMEOUT = Duration.ofSeconds(10);
     
     protected BaseExchangeClient(WebClient.Builder webClientBuilder, String baseUrl, ExchangeType exchangeType) {
-        this.webClient = webClientBuilder
-                .baseUrl(baseUrl)
-                .build();
+        if (webClientBuilder != null && baseUrl != null) {
+            this.webClient = webClientBuilder
+                    .baseUrl(baseUrl)
+                    .build();
+        } else {
+            this.webClient = null;
+        }
         this.exchangeType = exchangeType;
     }
     
@@ -57,6 +61,9 @@ public abstract class BaseExchangeClient implements ExchangeClient {
      * Handle API errors with retry logic
      */
     protected <T> Mono<T> handleApiCall(Mono<T> apiCall) {
+        if (apiCall == null) {
+            return Mono.empty();
+        }
         return apiCall
                 .timeout(TIMEOUT)
                 .retry(2)

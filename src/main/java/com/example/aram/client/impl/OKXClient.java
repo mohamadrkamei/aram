@@ -1,13 +1,13 @@
 package com.example.aram.client.impl;
 
 import com.example.aram.client.BaseExchangeClient;
+import com.example.aram.client.feign.OKXFeignClient;
 import com.example.aram.dto.PriceDto;
 import com.example.aram.enums.ExchangeType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,10 +23,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OKXClient extends BaseExchangeClient {
     
-    private static final String BASE_URL = "https://www.okx.com";
+    private final OKXFeignClient okxFeignClient;
     
-    public OKXClient(WebClient.Builder webClientBuilder) {
-        super(webClientBuilder, BASE_URL, ExchangeType.OKX);
+    public OKXClient(OKXFeignClient okxFeignClient) {
+        super(null, null, ExchangeType.OKX);
+        this.okxFeignClient = okxFeignClient;
     }
     
     @Override
@@ -34,12 +35,7 @@ public class OKXClient extends BaseExchangeClient {
         try {
             String okxSymbol = convertToExchangeSymbol(symbol);
             
-            OKXTickerResponse response = webClient
-                    .get()
-                    .uri("/api/v5/market/ticker?instId={symbol}", okxSymbol)
-                    .retrieve()
-                    .bodyToMono(OKXTickerResponse.class)
-                    .block();
+            OKXTickerResponse response = okxFeignClient.getTicker(okxSymbol);
             
             if (response != null && response.getData() != null && !response.getData().isEmpty()) {
                 OKXTicker ticker = response.getData().get(0);
@@ -75,12 +71,7 @@ public class OKXClient extends BaseExchangeClient {
     @Override
     public List<PriceDto> fetchAllTickers() {
         try {
-            OKXTickerResponse response = webClient
-                    .get()
-                    .uri("/api/v5/market/tickers?instType=SPOT")
-                    .retrieve()
-                    .bodyToMono(OKXTickerResponse.class)
-                    .block();
+            OKXTickerResponse response = okxFeignClient.getAllTickers("SPOT");
             
             if (response != null && response.getData() != null) {
                 return response.getData().stream()

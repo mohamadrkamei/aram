@@ -1,13 +1,13 @@
 package com.example.aram.client.impl;
 
 import com.example.aram.client.BaseExchangeClient;
+import com.example.aram.client.feign.KuCoinFeignClient;
 import com.example.aram.dto.PriceDto;
 import com.example.aram.enums.ExchangeType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,10 +23,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class KuCoinClient extends BaseExchangeClient {
     
-    private static final String BASE_URL = "https://api.kucoin.com";
+    private final KuCoinFeignClient kuCoinFeignClient;
     
-    public KuCoinClient(WebClient.Builder webClientBuilder) {
-        super(webClientBuilder, BASE_URL, ExchangeType.KUCOIN);
+    public KuCoinClient(KuCoinFeignClient kuCoinFeignClient) {
+        super(null, null, ExchangeType.KUCOIN);
+        this.kuCoinFeignClient = kuCoinFeignClient;
     }
     
     @Override
@@ -34,12 +35,7 @@ public class KuCoinClient extends BaseExchangeClient {
         try {
             String kucoinSymbol = convertToExchangeSymbol(symbol);
             
-            KuCoinTickerResponse response = webClient
-                    .get()
-                    .uri("/api/v1/market/orderbook/level1?symbol={symbol}", kucoinSymbol)
-                    .retrieve()
-                    .bodyToMono(KuCoinTickerResponse.class)
-                    .block();
+            KuCoinTickerResponse response = kuCoinFeignClient.getTicker(kucoinSymbol);
             
             if (response != null && response.getData() != null) {
                 KuCoinTickerData data = response.getData();
@@ -73,12 +69,7 @@ public class KuCoinClient extends BaseExchangeClient {
     @Override
     public List<PriceDto> fetchAllTickers() {
         try {
-            KuCoinAllTickersResponse response = webClient
-                    .get()
-                    .uri("/api/v1/market/allTickers")
-                    .retrieve()
-                    .bodyToMono(KuCoinAllTickersResponse.class)
-                    .block();
+            KuCoinAllTickersResponse response = kuCoinFeignClient.getAllTickers();
             
             if (response != null && response.getData() != null && response.getData().getTicker() != null) {
                 return response.getData().getTicker().stream()

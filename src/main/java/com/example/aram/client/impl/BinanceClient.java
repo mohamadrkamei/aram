@@ -1,6 +1,7 @@
 package com.example.aram.client.impl;
 
 import com.example.aram.client.BaseExchangeClient;
+import com.example.aram.client.feign.BinanceFeignClient;
 import com.example.aram.dto.PriceDto;
 import com.example.aram.enums.ExchangeType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -8,7 +9,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,10 +24,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BinanceClient extends BaseExchangeClient {
     
-    private static final String BASE_URL = "https://api.binance.com";
+    private final BinanceFeignClient binanceFeignClient;
     
-    public BinanceClient(WebClient.Builder webClientBuilder) {
-        super(webClientBuilder, BASE_URL, ExchangeType.BINANCE);
+    public BinanceClient(BinanceFeignClient binanceFeignClient) {
+        super(null, null, ExchangeType.BINANCE);
+        this.binanceFeignClient = binanceFeignClient;
     }
     
     @Override
@@ -35,12 +36,7 @@ public class BinanceClient extends BaseExchangeClient {
         try {
             String binanceSymbol = convertToExchangeSymbol(symbol);
             
-            BinanceTickerResponse response = webClient
-                    .get()
-                    .uri("/api/v3/ticker/bookTicker?symbol={symbol}", binanceSymbol)
-                    .retrieve()
-                    .bodyToMono(BinanceTickerResponse.class)
-                    .block();
+            BinanceTickerResponse response = binanceFeignClient.getTicker(binanceSymbol);
             
             if (response != null) {
                 return PriceDto.builder()
@@ -73,13 +69,7 @@ public class BinanceClient extends BaseExchangeClient {
     @Override
     public List<PriceDto> fetchAllTickers() {
         try {
-            List<BinanceTickerResponse> responses = webClient
-                    .get()
-                    .uri("/api/v3/ticker/bookTicker")
-                    .retrieve()
-                    .bodyToFlux(BinanceTickerResponse.class)
-                    .collectList()
-                    .block();
+            List<BinanceTickerResponse> responses = binanceFeignClient.getAllTickers();
             
             if (responses != null) {
                 return responses.stream()

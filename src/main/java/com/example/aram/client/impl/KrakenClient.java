@@ -1,13 +1,13 @@
 package com.example.aram.client.impl;
 
 import com.example.aram.client.BaseExchangeClient;
+import com.example.aram.client.feign.KrakenFeignClient;
 import com.example.aram.dto.PriceDto;
 import com.example.aram.enums.ExchangeType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,8 +21,6 @@ import java.util.*;
 @Slf4j
 public class KrakenClient extends BaseExchangeClient {
     
-    private static final String BASE_URL = "https://api.kraken.com";
-    
     // Kraken symbol mapping
     private static final Map<String, String> SYMBOL_MAP = new HashMap<>();
     static {
@@ -32,8 +30,11 @@ public class KrakenClient extends BaseExchangeClient {
         SYMBOL_MAP.put("ETH/USD", "ETHUSD");
     }
     
-    public KrakenClient(WebClient.Builder webClientBuilder) {
-        super(webClientBuilder, BASE_URL, ExchangeType.KRAKEN);
+    private final KrakenFeignClient krakenFeignClient;
+    
+    public KrakenClient(KrakenFeignClient krakenFeignClient) {
+        super(null, null, ExchangeType.KRAKEN);
+        this.krakenFeignClient = krakenFeignClient;
     }
     
     @Override
@@ -41,12 +42,7 @@ public class KrakenClient extends BaseExchangeClient {
         try {
             String krakenSymbol = convertToExchangeSymbol(symbol);
             
-            KrakenTickerResponse response = webClient
-                    .get()
-                    .uri("/0/public/Ticker?pair={symbol}", krakenSymbol)
-                    .retrieve()
-                    .bodyToMono(KrakenTickerResponse.class)
-                    .block();
+            KrakenTickerResponse response = krakenFeignClient.getTicker(krakenSymbol);
             
             if (response != null && response.getResult() != null && !response.getResult().isEmpty()) {
                 // Kraken returns data with the pair name as key

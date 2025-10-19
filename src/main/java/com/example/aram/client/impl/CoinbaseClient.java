@@ -1,6 +1,7 @@
 package com.example.aram.client.impl;
 
 import com.example.aram.client.BaseExchangeClient;
+import com.example.aram.client.feign.CoinbaseFeignClient;
 import com.example.aram.dto.PriceDto;
 import com.example.aram.enums.ExchangeType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -8,7 +9,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,10 +23,11 @@ import java.util.List;
 @Slf4j
 public class CoinbaseClient extends BaseExchangeClient {
     
-    private static final String BASE_URL = "https://api.exchange.coinbase.com";
+    private final CoinbaseFeignClient coinbaseFeignClient;
     
-    public CoinbaseClient(WebClient.Builder webClientBuilder) {
-        super(webClientBuilder, BASE_URL, ExchangeType.COINBASE);
+    public CoinbaseClient(CoinbaseFeignClient coinbaseFeignClient) {
+        super(null, null, ExchangeType.COINBASE);
+        this.coinbaseFeignClient = coinbaseFeignClient;
     }
     
     @Override
@@ -34,12 +35,7 @@ public class CoinbaseClient extends BaseExchangeClient {
         try {
             String coinbaseSymbol = convertToExchangeSymbol(symbol);
             
-            CoinbaseTickerResponse response = webClient
-                    .get()
-                    .uri("/products/{symbol}/ticker", coinbaseSymbol)
-                    .retrieve()
-                    .bodyToMono(CoinbaseTickerResponse.class)
-                    .block();
+            CoinbaseTickerResponse response = coinbaseFeignClient.getTicker(coinbaseSymbol);
             
             if (response != null) {
                 return PriceDto.builder()
@@ -73,13 +69,7 @@ public class CoinbaseClient extends BaseExchangeClient {
     @Override
     public List<PriceDto> fetchAllTickers() {
         try {
-            List<CoinbaseProductResponse> products = webClient
-                    .get()
-                    .uri("/products")
-                    .retrieve()
-                    .bodyToFlux(CoinbaseProductResponse.class)
-                    .collectList()
-                    .block();
+            List<CoinbaseProductResponse> products = coinbaseFeignClient.getProducts();
             
             List<PriceDto> allPrices = new ArrayList<>();
             if (products != null) {

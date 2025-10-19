@@ -1,7 +1,7 @@
 package com.example.aram.model;
 
 import com.example.aram.enums.ExchangeType;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
